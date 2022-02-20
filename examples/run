@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eu
+
+root=$(cd $(dirname ${BASH_SOURCE[0]})/..; pwd)
+exec sbcl --load $root/examples/$1.lisp

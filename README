@@ -1,0 +1,57 @@
+underweb - A Hunchentoot-based Web Framework
+============================================
+
+UNDERWEB makes it easier to write JSON REST API in Common Lisp.  It uses the
+excellent HUNCHENTOOT web server library for transport and HTTP, but
+provides a more fluent interface for defining your API endpoints.
+
+Consider:
+
+    (underweb:start-server :port 5000)
+    (underweb:get! "/ping" ()
+      `((ping . pong)))
+
+This defines a small API that responds to pings with pongs.
+
+    $ curl localhost:5000/ping
+    {"ping":"pong"}
+
+There are similary definitional forms, like GET!, for the other HTTP verbs:
+
+    (start-server :port 5099)
+    (defvar *things* (make-hash-table :test #'equal))
+
+    (get! "/things" ()
+      (loop for v being each hash-value in *things* collecting v))
+
+    (post! "/things" ()
+      (let* ((thing (request-json))
+             (id    (cdr (assoc :id thing))))
+        (setf (gethash id *things*) thing)
+        thing))
+
+    (get! "/things/:id" (id)
+      (gethash id *things*))
+
+    (put! "/things/:id" (id)
+      (let ((thing (request-json)))
+        (setf (gethash id *things*) thing)
+        thing))
+
+    (patch! "/things/:id" (id)
+      (let ((thing    (request-json))
+            (existing (gethash id *things*)))
+        (loop for (k . v) in thing do
+              (if (assoc k existing)
+                  (rplacd (assoc k existing) v)
+                  (setf existing (acons k v existing))))
+        (setf (gethash id *things*) existing)
+        existing))
+
+    (delete! "/things/:id" (id)
+      (remhash id *things*)
+      `((ok . deleted)))
+
+Note that HTTP handlers in underweb _will return errors to the caller_, so
+if you don't want Lisp-y errors leaking to callers, make sure you handle
+those errors yourself.  See `examples/errors.lisp` for more detail.
